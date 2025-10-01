@@ -1,4 +1,4 @@
-#define SIPP_VERSION "v3.7.x"
+#define SIPP_VERSION "v3.7.0-CustomNdt"
 #if 1 /* set to 0 to bypass the "#error" below */
 #error "\
   This is a stub version.h. You should not use this fake version number, \
