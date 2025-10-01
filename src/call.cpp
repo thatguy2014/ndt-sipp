@@ -5359,6 +5359,8 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
         if (call_scenario->unexpected_jump >= 0) {
             bool recursive = false;
             if (call_scenario->retaddr >= 0) {
+                //I need to add a log here that lets me know that I'm handling an unexpected message from within unexp.main
+                std::cout << "DEBUG: Entering unexpected handler at index " << msg_index << " where retaddr is " << call_scenario->retaddr << std::endl;
                 //if (M_callVariableTable->getVar(call_scenario->retaddr)->getDouble() != 0) {
                     /* We are already in a jump! */
                     //recursive = true;
