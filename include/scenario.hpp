@@ -184,6 +184,7 @@ public:
     int unexpected_jump;
     int retaddr;
     int pausedaddr;
+    bool pauseMsgQue;
 
     void computeSippMode();
 
