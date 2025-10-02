@@ -4530,6 +4530,8 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
 
     /*queue message but don't handle it if processing is paused*/
     if(pause_processing) {
+        fprintf(stderr, "DEBUG: pushing to packet queue instead of processing packet");
+        fflush(stderr);
         packet_queue.push(msg);
         return true;
     }
@@ -5380,12 +5382,8 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
                 msg_index = call_scenario->unexpected_jump;
                 queue_up(msg);
                 paused_until = 0;
-                // Process the unexpected message immediately in the context of unexp.main
-                //run_result = run(); // This will process the unexpected message
-                // Now pause processing, so any further incoming packets are queued
-                fprintf(stderr, "DEBUG: pausing processing\n");
+                fprintf(stderr, "DEBUG: pausing processing here?\n");
                 fflush(stderr);
-                pause_processing = true;
                 return run();
             } else {
                 if (!process_unexpected(msg)) {
@@ -5706,20 +5704,20 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
             M_callVariableTable->getVar(currentAction->getVarId())->setDouble(operand);
 
             //If this is the pause variable, sync the variables
-            const char* varName = call_scenario->allocVars->getName(currentAction->getVarId());
-            if (strcmp(varName, "_pause_processing") == 0) {
-                pause_processing = (operand != 0);
-                if (!pause_processing) {
-                    // Process queued messages
-                    fprintf(stderr, "DEBUG: processing queued packets");
-                    fflush(stderr);
-                    while (!packet_queue.empty()) {
-                        std::string msg = packet_queue.front();
-                        packet_queue.pop();
-                        process_incoming(msg.c_str(), nullptr); // or pass src if you store it
-                    }
-                }
-            }
+            // const char* varName = call_scenario->allocVars->getName(currentAction->getVarId());
+            // if (strcmp(varName, "_pause_processing") == 0) {
+            //     pause_processing = (operand != 0);
+            //     if (!pause_processing) {
+            //         // Process queued messages
+            //         fprintf(stderr, "DEBUG: processing queued packets");
+            //         fflush(stderr);
+            //         while (!packet_queue.empty()) {
+            //             std::string msg = packet_queue.front();
+            //             packet_queue.pop();
+            //             process_incoming(msg.c_str(), nullptr); // or pass src if you store it
+            //         }
+            //     }
+            // }
         } else if (currentAction->getActionType() == CAction::E_AT_ASSIGN_FROM_INDEX) {
             M_callVariableTable->getVar(currentAction->getVarId())->setDouble(msg_index);
         } else if (currentAction->getActionType() == CAction::E_AT_ASSIGN_FROM_GETTIMEOFDAY) {
@@ -5938,16 +5936,18 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
             msg_index = (int)operand - 1;
 
             //logic to resume processing packets when leaving unexp.main
+            fprintf(stderr, "DEBUG: leaving unexp.main to %d", msg_index);
+            fflush(stderr);
              if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) {
                 fprintf(stderr, "DEBUG: resuming processing");
                 fflush(stderr);
                 pause_processing = false;
                 // Process queued messages
-                while (!packet_queue.empty()) {
-                    std::string msg = packet_queue.front();
-                    packet_queue.pop();
-                    process_incoming(msg.c_str(), nullptr);
-                }
+                // while (!packet_queue.empty()) {
+                //     std::string msg = packet_queue.front();
+                //     packet_queue.pop();
+                //     process_incoming(msg.c_str(), nullptr);
+                // }
             }
             /* -1 is allowed to go to the first label, but watch out
              * when using msg_index. */
