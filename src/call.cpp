@@ -5383,6 +5383,8 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
                 // Process the unexpected message immediately in the context of unexp.main
                 run_result = run(); // This will process the unexpected message
                 // Now pause processing, so any further incoming packets are queued
+                fprintf(stderr, "DEBUG: pausing processing");
+                fflush(stderr);
                 pause_processing = true;
                 return run_result;
             } else {
@@ -5709,6 +5711,8 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
                 pause_processing = (operand != 0);
                 if (!pause_processing) {
                     // Process queued messages
+                    fprintf(stderr, "DEBUG: processing queued packets");
+                    fflush(stderr);
                     while (!packet_queue.empty()) {
                         std::string msg = packet_queue.front();
                         packet_queue.pop();
@@ -5935,6 +5939,8 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
 
             //logic to resume processing packets when leaving unexp.main
              if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) {
+                fprintf(stderr, "DEBUG: resuming processing");
+                fflush(stderr);
                 pause_processing = false;
                 // Process queued messages
                 while (!packet_queue.empty()) {
