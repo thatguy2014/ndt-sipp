@@ -5367,7 +5367,7 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
     /* If it is still not found, process an unexpected message */
     if(!found) {
         if (call_scenario->unexpected_jump >= 0) {
-            bool recursive = false;
+            bool recursive = false;    //deprecated within this fork
             if (call_scenario->retaddr >= 0) {
                 fprintf(stderr, "DEBUG: Entering unexpected handler at index %d with retaddr %d\n", msg_index, call_scenario->retaddr);
                 fflush(stderr);
@@ -5380,7 +5380,11 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
                 msg_index = call_scenario->unexpected_jump;
                 queue_up(msg);
                 paused_until = 0;
-                return run();
+                // Process the unexpected message immediately in the context of unexp.main
+                run_result = run(); // This will process the unexpected message
+                // Now pause processing, so any further incoming packets are queued
+                pause_processing = true;
+                return run_result;
             } else {
                 if (!process_unexpected(msg)) {
                     return false; // Call aborted by unexpected message handling
@@ -5928,6 +5932,17 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
                 ERROR("Jump statement at index %d jumps to itself and causes an infinite loop", msg_index);
             }
             msg_index = (int)operand - 1;
+
+            //logic to resume processing packets when leaving unexp.main
+             if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) {
+                pause_processing = false;
+                // Process queued messages
+                while (!packet_queue.empty()) {
+                    std::string msg = packet_queue.front();
+                    packet_queue.pop();
+                    process_incoming(msg.c_str(), nullptr);
+                }
+            }
             /* -1 is allowed to go to the first label, but watch out
              * when using msg_index. */
             if (msg_index < -1 || msg_index >= (int)call_scenario->messages.size()) {
