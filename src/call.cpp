@@ -5381,12 +5381,12 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
                 queue_up(msg);
                 paused_until = 0;
                 // Process the unexpected message immediately in the context of unexp.main
-                run_result = run(); // This will process the unexpected message
+                //run_result = run(); // This will process the unexpected message
                 // Now pause processing, so any further incoming packets are queued
-                fprintf(stderr, "DEBUG: pausing processing");
+                fprintf(stderr, "DEBUG: pausing processing\n");
                 fflush(stderr);
                 pause_processing = true;
-                return run_result;
+                return run();
             } else {
                 if (!process_unexpected(msg)) {
                     return false; // Call aborted by unexpected message handling
