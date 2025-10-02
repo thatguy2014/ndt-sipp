@@ -45,6 +45,7 @@
 #include <iterator>
 #include <sstream>
 #include <vector>
+#include <queue>
 
 #include <assert.h>
 #include <stdarg.h>
@@ -72,6 +73,9 @@ void split(const std::string &s, char delim, Out result) {
         *(result++) = item;
     }
 }
+
+std::queue<std::string> packet_queue;
+bool pause_processing = false;
 
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> elems;
@@ -4524,6 +4528,12 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
     setRunning();
     message *curmsg = call_scenario->messages[msg_index];
 
+    /*queue message but don't handle it if processing is paused*/
+    if(pause_processing) {
+        packet_queue.push(msg);
+        return true;
+    }
+
     /* Ignore the messages received during a pause if -pause_msg_ign is set */
     if (curmsg->M_type == MSG_TYPE_PAUSE && pause_msg_ign) {
         return true;
@@ -5688,6 +5698,20 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
         } else if (currentAction->getActionType() == CAction::E_AT_ASSIGN_FROM_VALUE) {
             double operand = get_rhs(currentAction);
             M_callVariableTable->getVar(currentAction->getVarId())->setDouble(operand);
+
+            //If this is the pause variable, sync the variables
+            const char* varName = call_scenario->allocVars->getName(currentAction->getVarId());
+            if (strcmp(varName, "_pause_processing") == 0) {
+                pause_processing = (operand != 0);
+                if (!pause_processing) {
+                    // Process queued messages
+                    while (!packet_queue.empty()) {
+                        std::string msg = packet_queue.front();
+                        packet_queue.pop();
+                        process_incoming(msg.c_str(), nullptr); // or pass src if you store it
+                    }
+                }
+            }
         } else if (currentAction->getActionType() == CAction::E_AT_ASSIGN_FROM_INDEX) {
             M_callVariableTable->getVar(currentAction->getVarId())->setDouble(msg_index);
         } else if (currentAction->getActionType() == CAction::E_AT_ASSIGN_FROM_GETTIMEOFDAY) {
