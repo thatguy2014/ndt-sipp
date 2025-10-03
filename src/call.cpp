@@ -5367,15 +5367,22 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
     }
 
     /* If it is still not found, process an unexpected message */
-    if(!found) {
+    if (!found) {
         if (call_scenario->unexpected_jump >= 0) {
-            bool recursive = false;    //deprecated within this fork
-            if (call_scenario->retaddr >= 0) {
-                fprintf(stderr, "DEBUG: Entering unexpected handler at index %d with retaddr %d\n", msg_index, call_scenario->retaddr);
+            if (call_scenario->retaddr < 0) {
+                // First unexpected: save return address
+                call_scenario->retaddr = msg_index;
+                fprintf(stderr, "DEBUG: Entering unexpected handler at index %d, saving retaddr=%d\n",
+                        msg_index, call_scenario->retaddr);
                 fflush(stderr);
+    
                 M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(msg_index);
+            } else {
+                // Already in unexp.main → don’t overwrite
+                fprintf(stderr, "DEBUG: Ignoring new unexpected at index %d, retaddr already set=%d\n",
+                        msg_index, call_scenario->retaddr);
+                fflush(stderr);
             }
-            if (!recursive) {
                 if (call_scenario->pausedaddr >= 0) {
                     M_callVariableTable->getVar(call_scenario->pausedaddr)->setDouble(paused_until);
                 }
@@ -5385,11 +5392,6 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
                 fprintf(stderr, "DEBUG: pausing processing here?\n");
                 fflush(stderr);
                 return run();
-            } else {
-                if (!process_unexpected(msg)) {
-                    return false; // Call aborted by unexpected message handling
-                }
-            }
         } else {
             T_AutoMode L_case;
             if ((L_case = checkAutomaticResponseMode(request)) == 0) {
@@ -5402,6 +5404,7 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
             }
         }
     }
+
 
     int test = (!found) ? -1 : call_scenario->messages[search_index]->test;
     /* test==0: No branching"
@@ -5939,15 +5942,9 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
             fprintf(stderr, "DEBUG: leaving unexp.main to %d", msg_index);
             fflush(stderr);
              if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) {
-                fprintf(stderr, "DEBUG: resuming processing");
+                fprintf(stderr, "DEBUG: resuming processing and resetting retaddr");
                 fflush(stderr);
-                pause_processing = false;
-                // Process queued messages
-                // while (!packet_queue.empty()) {
-                //     std::string msg = packet_queue.front();
-                //     packet_queue.pop();
-                //     process_incoming(msg.c_str(), nullptr);
-                // }
+                call_scenario->retaddr = -1;
             }
             /* -1 is allowed to go to the first label, but watch out
              * when using msg_index. */
