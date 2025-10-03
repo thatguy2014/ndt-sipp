@@ -5929,7 +5929,7 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
             fprintf(stderr, "DEBUG: leaving unexp.main to %d\n", msg_index);
             fflush(stderr);
              if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) {
-                fprintf(stderr, "DEBUG: resuming processing and resetting retaddr");
+                fprintf(stderr, "DEBUG: resuming processing and resetting retaddr\n");
                 fflush(stderr);
                 M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(-1);
             }
