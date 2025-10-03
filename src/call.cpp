@@ -4528,14 +4528,6 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
     setRunning();
     message *curmsg = call_scenario->messages[msg_index];
 
-    /*queue message but don't handle it if processing is paused*/
-    if(pause_processing) {
-        fprintf(stderr, "DEBUG: pushing to packet queue instead of processing packet");
-        fflush(stderr);
-        packet_queue.push(msg);
-        return true;
-    }
-
     /* Ignore the messages received during a pause if -pause_msg_ign is set */
     if (curmsg->M_type == MSG_TYPE_PAUSE && pause_msg_ign) {
         return true;
@@ -5370,28 +5362,23 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
     if (!found) {
         if (call_scenario->unexpected_jump >= 0) {
             if (call_scenario->retaddr < 0) {
-                // First unexpected: save return address
-                call_scenario->retaddr = msg_index;
-                fprintf(stderr, "DEBUG: Entering unexpected handler at index %d, saving retaddr=%d\n",
-                        msg_index, call_scenario->retaddr);
-                fflush(stderr);
-    
-                M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(msg_index);
-            } else {
-                // Already in unexp.main → don’t overwrite
-                fprintf(stderr, "DEBUG: Ignoring new unexpected at index %d, retaddr already set=%d\n",
-                        msg_index, call_scenario->retaddr);
-                fflush(stderr);
-            }
-                if (call_scenario->pausedaddr >= 0) {
-                    M_callVariableTable->getVar(call_scenario->pausedaddr)->setDouble(paused_until);
+                if (M_callVariableTable->getVar(call_scenario->retaddr)->getDouble() > 0) {
+                    /* We are already in a jump! */
+                    fprintf(stderr, "DEBUG: already inside unexpected handler, not setting retaddr");
+                    fflush(stderr);
+                } else {
+                    fprintf(stderr, "DEBUG: Entering unexpected handler at index %d, saving retaddr=%d\n",msg_index, call_scenario->retaddr);
+                    fflush(stderr);
+                    M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(msg_index);
                 }
-                msg_index = call_scenario->unexpected_jump;
-                queue_up(msg);
-                paused_until = 0;
-                fprintf(stderr, "DEBUG: pausing processing here?\n");
-                fflush(stderr);
-                return run();
+            }
+            if (call_scenario->pausedaddr >= 0) {
+                M_callVariableTable->getVar(call_scenario->pausedaddr)->setDouble(paused_until);
+            }
+            msg_index = call_scenario->unexpected_jump;
+            queue_up(msg);
+            paused_until = 0;
+            return run();
         } else {
             T_AutoMode L_case;
             if ((L_case = checkAutomaticResponseMode(request)) == 0) {
