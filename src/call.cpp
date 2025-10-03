@@ -5364,11 +5364,7 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
             if (call_scenario->retaddr >= 0) {
                 if (M_callVariableTable->getVar(call_scenario->retaddr)->getDouble() > 0) {
                     /* We are already in a jump! */
-                    fprintf(stderr, "DEBUG: already inside unexpected handler, not setting retaddr\n");
-                    fflush(stderr);
                 } else {
-                    fprintf(stderr, "DEBUG: Entering unexpected handler at index %d with retaddr index: %f \n",msg_index, M_callVariableTable->getVar(call_scenario->retaddr)->getDouble());
-                    fflush(stderr);
                     M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(msg_index);
                 }
             }
@@ -5692,22 +5688,6 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
         } else if (currentAction->getActionType() == CAction::E_AT_ASSIGN_FROM_VALUE) {
             double operand = get_rhs(currentAction);
             M_callVariableTable->getVar(currentAction->getVarId())->setDouble(operand);
-
-            //If this is the pause variable, sync the variables
-            // const char* varName = call_scenario->allocVars->getName(currentAction->getVarId());
-            // if (strcmp(varName, "_pause_processing") == 0) {
-            //     pause_processing = (operand != 0);
-            //     if (!pause_processing) {
-            //         // Process queued messages
-            //         fprintf(stderr, "DEBUG: processing queued packets");
-            //         fflush(stderr);
-            //         while (!packet_queue.empty()) {
-            //             std::string msg = packet_queue.front();
-            //             packet_queue.pop();
-            //             process_incoming(msg.c_str(), nullptr); // or pass src if you store it
-            //         }
-            //     }
-            // }
         } else if (currentAction->getActionType() == CAction::E_AT_ASSIGN_FROM_INDEX) {
             M_callVariableTable->getVar(currentAction->getVarId())->setDouble(msg_index);
         } else if (currentAction->getActionType() == CAction::E_AT_ASSIGN_FROM_GETTIMEOFDAY) {
@@ -5926,11 +5906,7 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
             msg_index = (int)operand - 1;
 
             //logic to resume processing packets when leaving unexp.mainF
-            fprintf(stderr, "DEBUG: leaving unexp.main to %d\n", msg_index);
-            fflush(stderr);
              if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) {
-                fprintf(stderr, "DEBUG: resuming processing and resetting retaddr\n");
-                fflush(stderr);
                 M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(-1);
             }
             /* -1 is allowed to go to the first label, but watch out
