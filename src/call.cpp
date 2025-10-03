@@ -5367,7 +5367,7 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
                     fprintf(stderr, "DEBUG: already inside unexpected handler, not setting retaddr");
                     fflush(stderr);
                 } else {
-                    fprintf(stderr, "DEBUG: Entering unexpected handler at index %d, saving retaddr index=%d\n",msg_index, (M_callVariableTable->getVar(call_scenario->retaddr)->getDouble());
+                    fprintf(stderr, "DEBUG: Entering unexpected handler at index %d, saving retaddr index=%d\n",msg_index, M_callVariableTable->getVar(call_scenario->retaddr)->getDouble());
                     fflush(stderr);
                     M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(msg_index);
                 }
