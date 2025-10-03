@@ -5364,7 +5364,7 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
             if (call_scenario->retaddr >= 0) {
                 if (M_callVariableTable->getVar(call_scenario->retaddr)->getDouble() > 0) {
                     /* We are already in a jump! */
-                    fprintf(stderr, "DEBUG: already inside unexpected handler, not setting retaddr");
+                    fprintf(stderr, "DEBUG: already inside unexpected handler, not setting retaddr\n");
                     fflush(stderr);
                 } else {
                     fprintf(stderr, "DEBUG: Entering unexpected handler at index %d with retaddr index: %f \n",msg_index, M_callVariableTable->getVar(call_scenario->retaddr)->getDouble());
