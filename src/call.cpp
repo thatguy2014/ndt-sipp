@@ -5925,13 +5925,13 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
             }
             msg_index = (int)operand - 1;
 
-            //logic to resume processing packets when leaving unexp.main
-            fprintf(stderr, "DEBUG: leaving unexp.main to %d", msg_index);
+            //logic to resume processing packets when leaving unexp.mainF
+            fprintf(stderr, "DEBUG: leaving unexp.main to %d\n", msg_index);
             fflush(stderr);
              if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) {
                 fprintf(stderr, "DEBUG: resuming processing and resetting retaddr");
                 fflush(stderr);
-                call_scenario->retaddr = -1;
+                M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(-1);
             }
             /* -1 is allowed to go to the first label, but watch out
              * when using msg_index. */
