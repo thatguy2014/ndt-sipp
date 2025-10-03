@@ -936,11 +936,10 @@ void SIPpSocket::invalidate()
     if (rc == -1) {
         if (errno != EPERM) {  // EPERM = Operation not permitted (harmless here)
             WARNING_NO("Failed to delete FD %d from epoll (errno=%d)", ss_fd, errno);
-        } else {
-            // Debug-only logging if you want visibility
-            DEBUG("Ignoring harmless epoll_ctl DEL failure for FD %d (errno=EPERM)", ss_fd);
         }
     }
+
+        
 #endif
     }
     if (ss_fd != -1 && ss_fd != stdin_fileno) {
