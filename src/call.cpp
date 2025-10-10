@@ -45,7 +45,6 @@
 #include <iterator>
 #include <sstream>
 #include <vector>
-#include <queue>
 
 #include <assert.h>
 #include <stdarg.h>
@@ -73,9 +72,6 @@ void split(const std::string &s, char delim, Out result) {
         *(result++) = item;
     }
 }
-
-std::queue<std::string> packet_queue;
-bool pause_processing = false;
 
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> elems;
@@ -5359,23 +5355,40 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
     }
 
     /* If it is still not found, process an unexpected message */
-    if (!found) {
-        if (call_scenario->unexpected_jump >= 0) {
-            if (call_scenario->retaddr >= 0) {
-                if (M_callVariableTable->getVar(call_scenario->retaddr)->getDouble() > 0) {
-                    /* We are already in a jump! */
+   if (!found && call_scenario && M_callVariableTable) {
+    if (call_scenario->unexpected_jump >= 0) {
+
+        // Handle return address tracking
+        if (call_scenario->retaddr >= 0) {
+            auto *retVar = M_callVariableTable->getVar(call_scenario->retaddr);
+            if (retVar) {
+                if (retVar->getDouble() != 0) {
+                    // Already in a jump – no action needed
                 } else {
-                    M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(msg_index);
+                    retVar->setDouble(msg_index);
                 }
             }
-            if (call_scenario->pausedaddr >= 0) {
-                M_callVariableTable->getVar(call_scenario->pausedaddr)->setDouble(paused_until);
+        }
+
+        // Handle pause tracking
+        if (call_scenario->pausedaddr >= 0) {
+            auto *pausedVar = M_callVariableTable->getVar(call_scenario->pausedaddr);
+            if (pausedVar) {
+                pausedVar->setDouble(paused_until);
             }
-            msg_index = call_scenario->unexpected_jump;
-            queue_up(msg);
-            paused_until = 0;
-            return run();
-        } else {
+        }
+
+        msg_index = call_scenario->unexpected_jump;
+        queue_up(msg);
+        paused_until = 0;
+
+        // ⚠ Consider avoiding recursion if run() can be called reentrantly
+        return run();
+    } else {
+        // (other logic)
+    }
+}
+
             T_AutoMode L_case;
             if ((L_case = checkAutomaticResponseMode(request)) == 0) {
                 if (!process_unexpected(msg)) {
@@ -5387,7 +5400,6 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
             }
         }
     }
-
 
     int test = (!found) ? -1 : call_scenario->messages[search_index]->test;
     /* test==0: No branching"
@@ -5905,10 +5917,17 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
             }
             msg_index = (int)operand - 1;
 
-            //logic to resume processing packets when leaving unexp.mainF
-             if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) {
-                M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(-1);
+            // Logic to resume processing packets when leaving unexp.mainF
+            if (call_scenario && M_callVariableTable && call_scenario->retaddr >= 0) {
+                auto *retVar = M_callVariableTable->getVar(call_scenario->retaddr);
+                if (retVar) {
+                    int stored = (int)retVar->getDouble();
+                    if (msg_index + 1 == stored) {
+                        retVar->setDouble(-1);
+                    }
+                }
             }
+
             /* -1 is allowed to go to the first label, but watch out
              * when using msg_index. */
             if (msg_index < -1 || msg_index >= (int)call_scenario->messages.size()) {
