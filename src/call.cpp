@@ -5385,14 +5385,15 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
         // ⚠ Consider avoiding recursion if run() can be called reentrantly
         return run();
     } else {
-        T_AutoMode L_case;
-        if ((L_case = checkAutomaticResponseMode(request)) == 0) {
-            if (!process_unexpected(msg)) {
-                return false; // Call aborted by unexpected message handling
+            T_AutoMode L_case;
+            if ((L_case = checkAutomaticResponseMode(request)) == 0) {
+                if (!process_unexpected(msg)) {
+                    return false; // Call aborted by unexpected message handling
+                }
+            } else {
+                // call aborted by automatic response mode if needed
+                return automaticResponseMode(L_case, msg);
             }
-        } else {
-            // call aborted by automatic response mode if needed
-            return automaticResponseMode(L_case, msg);
         }
     }
 
