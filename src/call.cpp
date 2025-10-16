@@ -5357,13 +5357,16 @@ bool call::process_incoming(const char* msg, const struct sockaddr_storage* src)
     /* If it is still not found, process an unexpected message */
     if(!found) {
         if (call_scenario->unexpected_jump >= 0) { 
-            if (call_scenario->retaddr >= 0) { 
-                if (M_callVariableTable->getVar(call_scenario->retaddr)->getDouble() != 0) 
-                { 
-                    /* We are already in a jump! */ 
-                } else { 
-                    M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(msg_index); 
-                } 
+            if (M_callVariableTable != nullptr && call_scenario->retaddr >= 0 && call_scenario->retaddr < M_callVariableTable->size) {
+                auto* var = M_callVariableTable->getVar(call_scenario->retaddr);
+                if (var != nullptr) {
+                    if (M_callVariableTable->getVar(call_scenario->retaddr)->getDouble() != 0) 
+                    { 
+                        /* We are already in a jump! */ 
+                    } else { 
+                        M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(msg_index); 
+                    } 
+                }
             } 
             if (call_scenario->pausedaddr >= 0) { 
                 M_callVariableTable->getVar(call_scenario->pausedaddr)->setDouble(paused_until); 
@@ -5902,9 +5905,16 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
             msg_index = (int)operand - 1;
 
             //logic to resume processing packets when leaving unexp.main
-            if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) 
-            { 
-                M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(-1); 
+            if (M_callVariableTable != nullptr &&
+            call_scenario->retaddr >= 0 &&
+            call_scenario->retaddr < M_callVariableTable->size) {
+                auto* var = M_callVariableTable->getVar(call_scenario->retaddr);
+                if (var != nullptr) {
+                    if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) 
+                    { 
+                        M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(-1); 
+                    }
+                }
             }
 
             /* -1 is allowed to go to the first label, but watch out
