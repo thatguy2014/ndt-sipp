@@ -5902,7 +5902,7 @@ call::T_ActionResult call::executeAction(const char* msg, message* curmsg)
             msg_index = (int)operand - 1;
 
             //logic to resume processing packets when leaving unexp.main
-            if (call_scenario->retaddr >= 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) 
+            if (call_scenario->retaddr != 0 && msg_index + 1 == (int)M_callVariableTable->getVar(call_scenario->retaddr)->getDouble()) 
             { 
                 M_callVariableTable->getVar(call_scenario->retaddr)->setDouble(-1); 
             }
